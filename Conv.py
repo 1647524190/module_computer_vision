@@ -2,12 +2,23 @@ import torch.nn as nn
 
 
 class Conv(nn.Module):
-    def __init__(self, cin, cout, k=1, s=1, p=0, g=1, d=1, bn=True, act=False, init=True):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel=1,
+                 stride=1,
+                 padding=0,
+                 group=1,
+                 dilation=1,
+                 bias=False,
+                 bn=True,
+                 act=False,
+                 init=True):
 
         super().__init__()
-        self.conv = nn.Conv2d(cin, cout, k, s, p, groups=g, dilation=d, bias=False)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel, stride, padding, groups=group, dilation=dilation, bias=bias)
         self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
-        self.bn = nn.BatchNorm2d(cout) if bn is True else (bn if isinstance(bn, nn.Module) else nn.Identity())
+        self.bn = nn.BatchNorm2d(out_channels) if bn is True else (bn if isinstance(bn, nn.Module) else nn.Identity())
 
         if init:
             self.initialize_weights()
