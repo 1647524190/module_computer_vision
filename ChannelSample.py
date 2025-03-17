@@ -14,44 +14,24 @@ class ChannelSample(nn.Module):
         """
         super(ChannelSample, self).__init__()
         assert mode in ["mean", "max"], "mode must be 'mean' or 'max'"
+        assert out_channels <= 2 * in_channels, "The number of output channels should be less than twice the number of input channels. "
 
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.mode = mode
+        self.target_channels = self.out_channels if self.out_channels <= self.in_channels else self.out_channels - self.in_channels
+        self.conv = Conv(self.target_channels, self.target_channels, 1, 1)
 
-        # # 计算是否需要额外的卷积层
-        # if self.out_channels <= self.in_channels:
-        #     self.conv = Conv(self.out_channels, self.out_channels, 1, 1)
-        # else:
-        #     self.conv = Conv(self.out_channels - self.in_channels, self.out_channels - self.in_channels, 1, 1)
-
-    def compute_kernel_stride(self, in_channels, out_channels):
-        """
-        计算通道池化 kernel_size 和 stride
-        Args:
-            in_channels (int): 输入通道数
-            out_channels (int): 输出通道数
-        Returns:
-            kernel (int), stride (int)
-        """
-        # 获取插值通道数
-        target_channels = out_channels if out_channels <= in_channels else out_channels - in_channels
-
-        stride = max(1, in_channels // target_channels)
-        kernel = in_channels - (target_channels - 1) * stride
-
-        return kernel, stride
-
-    def unfold_and_pool(self, x, kernel, stride):
+    def channel_pool(self, x):
         """
         通道池化操作
         Args:
             x (Tensor): 输入张量 (N, C, H, W)
-            kernel: 通道池化核
-            stride：通道池化步长
         Returns:
             Tensor: 采样后的张量 (N, new_C, H, W)
         """
+        stride = max(1, self.in_channels // self.target_channels)
+        kernel = self.in_channels - (self.target_channels - 1) * stride
 
         # 变换形状并进行 `unfold`
         x_unfold = x.permute(0, 2, 3, 1).unfold(dimension=-1, size=kernel, step=stride)
@@ -61,12 +41,10 @@ class ChannelSample(nn.Module):
         pooled = pooled.permute(0, 3, 1, 2)
         # pooled = self.conv(pooled)
 
-        return pooled
+        return kernel, pooled
 
     def forward(self, x):
-        kernel, stride = self.compute_kernel_stride(self.in_channels, self.out_channels)
-
-        pooled = self.unfold_and_pool(x, kernel, stride)
+        kernel, pooled = self.channel_pool(x)
 
         if self.out_channels <= self.in_channels:
             return pooled
@@ -89,9 +67,9 @@ if __name__ == "__main__":
     # 生成测试数据
     N, C, H, W = 1, 4, 4, 4  # batch=1, 通道数=5, 高度=4, 宽度=4
     x = torch.randn(N, C, H, W)  # 随机输入
-    print("输入 x:\n", x)
 
-    model = ChannelSample(in_channels=C, out_channels=2, mode="mean")
+    model = ChannelSample(in_channels=C, out_channels=10, mode="mean")
     out = model(x)
+    print("输入 x:\n", x)
     print("\n输出形状:", out.shape)  # 期望 (1, 7, 4, 4)
     print(out)
