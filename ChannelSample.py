@@ -60,15 +60,15 @@ class ChannelSample(nn.Module):
                 expanded_channels.append(pooled[:, pooled_idx:pooled_idx + 1, :, :])
                 pooled_idx += 1
 
-        return torch.cat(expanded_channels, dim=1)  # 拼接插值后的通道
+        return torch.cat(expanded_channels, dim=1)
 
 
 if __name__ == "__main__":
     # 生成测试数据
-    N, C, H, W = 1, 4, 4, 4  # batch=1, 通道数=5, 高度=4, 宽度=4
+    N, C, H, W = 2, 6, 4, 4  # batch=1, 通道数=5, 高度=4, 宽度=4
     x = torch.randn(N, C, H, W)  # 随机输入
 
-    model = ChannelSample(in_channels=C, out_channels=10, mode="mean")
+    model = ChannelSample(in_channels=C, out_channels=2, mode="mean")
     out = model(x)
     print("输入 x:\n", x)
     print("\n输出形状:", out.shape)  # 期望 (1, 7, 4, 4)
