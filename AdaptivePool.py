@@ -25,8 +25,9 @@ class AdaptivePool(nn.Module):
         max_pool = F.max_pool2d(x, kernel_size=self.kernel, stride=self.stride, padding=self.padding)
         avg_pool = F.avg_pool2d(x, kernel_size=self.kernel, stride=self.stride, padding=self.padding)
 
-        x = torch.cat((torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1)
-        weight = torch.sigmoid(self.weight_conv(x.mean(dim=1, keepdim=True)))
+        # x = torch.cat((torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1)
+        x = x.mean(dim=1, keepdim=True)
+        weight = torch.sigmoid(self.weight_conv(x))
 
         out = weight * max_pool + (1 - weight) * avg_pool
         return out
