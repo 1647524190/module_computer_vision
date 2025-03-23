@@ -5,31 +5,23 @@ import torch.nn.functional as F
 
 class AdaptivePool(nn.Module):
     def __init__(self, kernel, stride, padding=0):
-        """
-        自适应池化
-        Args:
-            kernel (int): 池化窗口大小
-            stride (int): 步长
-            padding(int): 填充
-        """
         super(AdaptivePool, self).__init__()
-        self.kernel = kernel
-        self.stride = stride
-        self.padding = padding
+        self.max_pool = nn.MaxPool2d(kernel_size=kernel, stride=stride, padding=padding)
+        self.avg_pool = nn.AvgPool2d(kernel_size=kernel, stride=stride, padding=padding)
 
     def forward(self, x):
-        max_pool = F.max_pool2d(x, kernel_size=self.kernel, stride=self.stride, padding=self.padding)
-        avg_pool = F.avg_pool2d(x, kernel_size=self.kernel, stride=self.stride, padding=self.padding)
+        max_pool = self.max_pool(x)
+        avg_pool = self.avg_pool(x)
 
-        x = x.mean(dim=1, keepdim=True)
-        weight = torch.sigmoid(x)
+        attn = (max_pool * avg_pool).mean(dim=1, keepdims=True)
+        attn = torch.sigmoid(attn)
 
-        out = weight * max_pool + (1 - weight) * avg_pool
+        out = attn * avg_pool + (1 - attn) * max_pool
         return out
 
 
 # 测试
 if __name__ == "__main__":
-    x = torch.randn(1, 3, 8, 8)
+    x = torch.randn(1, 2, 4, 4)
     model = AdaptivePool(kernel=2, stride=2)
     output = model(x)
